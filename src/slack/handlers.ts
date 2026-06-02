@@ -122,7 +122,7 @@ export async function handleCustomizeSubmit({ body, view, client, ack }: ViewArg
   });
 }
 
-export async function handleRegisterSubmit({ body, view, ack }: ViewArgs): Promise<void> {
+export async function handleRegisterSubmit({ body, view, client, ack }: ViewArgs): Promise<void> {
   const values = view.state.values;
   const firstName = values.first_name_block.first_name.value?.trim() ?? '';
   const lastName = values.last_name_block.last_name.value?.trim() ?? '';
@@ -139,6 +139,10 @@ export async function handleRegisterSubmit({ body, view, ack }: ViewArgs): Promi
   }
   await ack();
   await users.upsert(body.user.id, teamId(body), firstName, lastName);
+  await client.chat.postMessage({
+    channel: body.user.id,
+    text: `✅ Bienvenue ${firstName} ! Tu recevras une suggestion de salade chaque matin (lun-ven à 10h). Tu peux te désinscrire à tout moment avec \`/salade-stop\`.`,
+  });
 }
 
 export async function handleNameThenOrderSubmit({ body, view, client, ack }: ViewArgs): Promise<void> {
