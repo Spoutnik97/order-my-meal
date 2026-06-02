@@ -188,9 +188,8 @@ export async function handleSubscribeCommand({ command, client, ack }: CommandAr
   }
 
   await users.setActive(command.user_id, command.team_id, true);
-  await client.chat.postEphemeral({
-    channel: command.channel_id,
-    user: command.user_id,
+  await client.chat.postMessage({
+    channel: command.user_id,
     text: `✅ Tu es inscrit(e) pour les suggestions quotidiennes, ${user.first_name} !`,
   });
 }
@@ -198,9 +197,8 @@ export async function handleSubscribeCommand({ command, client, ack }: CommandAr
 export async function handleUnsubscribeCommand({ command, client, ack }: CommandArgs): Promise<void> {
   await ack();
   await users.setActive(command.user_id, command.team_id, false);
-  await client.chat.postEphemeral({
-    channel: command.channel_id,
-    user: command.user_id,
+  await client.chat.postMessage({
+    channel: command.user_id,
     text: "👋 Tu ne recevras plus de suggestions quotidiennes.",
   });
 }

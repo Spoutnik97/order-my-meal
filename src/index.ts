@@ -36,32 +36,36 @@ app.command('/salade', handleSubscribeCommand);
 app.command('/salade-stop', handleUnsubscribeCommand);
 
 app.event('app_home_opened', async ({ event, client }) => {
-  await client.views.publish({
-    user_id: event.user,
-    view: {
-      type: 'home',
-      blocks: [
-        {
-          type: 'section',
-          text: {
-            type: 'mrkdwn',
-            text: '*Bienvenue sur Ferré Order ! 🥗*\nJe te propose chaque matin (lun-ven à 10h) une salade et je commande pour toi avant 11h.',
-          },
-        },
-        {
-          type: 'actions',
-          elements: [
-            {
-              type: 'button',
-              text: { type: 'plain_text', text: "S'inscrire aux suggestions", emoji: true },
-              style: 'primary',
-              action_id: 'open_register',
+  try {
+    await client.views.publish({
+      user_id: event.user,
+      view: {
+        type: 'home',
+        blocks: [
+          {
+            type: 'section',
+            text: {
+              type: 'mrkdwn',
+              text: '*Bienvenue sur Ferré Order ! 🥗*\nJe te propose chaque matin (lun-ven à 10h) une salade et je commande pour toi avant 11h.',
             },
-          ],
-        },
-      ],
-    },
-  });
+          },
+          {
+            type: 'actions',
+            elements: [
+              {
+                type: 'button',
+                text: { type: 'plain_text', text: "S'inscrire aux suggestions", emoji: true },
+                style: 'primary',
+                action_id: 'open_register',
+              },
+            ],
+          },
+        ],
+      },
+    });
+  } catch (err: unknown) {
+    if ((err as { data?: { error?: string } }).data?.error !== 'not_enabled') throw err;
+  }
 });
 
 app.action('open_register', async ({ body, client, ack }) => {
