@@ -1,0 +1,28 @@
+{
+  "name": "ferre-order",
+  "version": "1.0.0",
+  "description": "Slack bot for daily salad orders at Ferré",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx watch src/index.ts"
+  },
+  "packageManager": "pnpm@10.12.1",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0",
+    "@slack/bolt": "^4.4.0",
+    "better-sqlite3": "^11.9.1",
+    "dotenv": "^16.5.0",
+    "node-cron": "^3.0.3",
+    "resend": "^4.5.1"
+  },
+  "devDependencies": {
+    "@slack/web-api": "^7.16.0",
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^25.9.1",
+    "@types/node-cron": "^3.0.11",
+    "tsx": "^4.22.4",
+    "typescript": "^6.0.3"
+  }
+}
