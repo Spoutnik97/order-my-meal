@@ -12,7 +12,7 @@ export interface UserRow {
   team_id: string;
   first_name: string | null;
   last_name: string | null;
-  active: number;
+  active: boolean;
   created_at: string;
   bot_token?: string;
 }

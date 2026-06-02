@@ -15,7 +15,7 @@ function todayLabel(): string {
 }
 
 async function sendDailySuggestions(): Promise<void> {
-  const activeUsers = users.allActive();
+  const activeUsers = await users.allActive();
   if (activeUsers.length === 0) return;
 
   const date = todayDate();
@@ -31,7 +31,7 @@ async function sendDailySuggestions(): Promise<void> {
         text: `Ta suggestion de salade du ${todayLabel()}`,
       });
 
-      suggestions.upsert(user.slack_user_id, user.team_id, date, salad, result.ts ?? null);
+      await suggestions.upsert(user.slack_user_id, user.team_id, date, salad, result.ts ?? null);
       console.log(`Suggestion sent to ${user.slack_user_id} (${user.first_name})`);
     } catch (err) {
       console.error(`Failed to send suggestion to ${user.slack_user_id}:`, (err as Error).message);
@@ -41,7 +41,7 @@ async function sendDailySuggestions(): Promise<void> {
 
 async function sendReminders(): Promise<void> {
   const date = todayDate();
-  const pending = suggestions.pendingForDate(date);
+  const pending = await suggestions.pendingForDate(date);
 
   for (const record of pending) {
     try {

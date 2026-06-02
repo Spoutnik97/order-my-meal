@@ -1,79 +1,94 @@
-import db from './setup';
+import pool from './setup';
 import type { Salad, UserRow, InstallationRow, SuggestionWithSalad, PendingSuggestionRow } from '../types';
 
 export const installations = {
-  upsert(teamId: string, enterpriseId: string | null, botToken: string, botUserId: string): void {
-    db.prepare(`
-      INSERT INTO installations (team_id, enterprise_id, bot_token, bot_user_id)
-      VALUES (?, ?, ?, ?)
-      ON CONFLICT(team_id, enterprise_id) DO UPDATE SET bot_token=excluded.bot_token, bot_user_id=excluded.bot_user_id
-    `).run(teamId, enterpriseId, botToken, botUserId);
+  async upsert(teamId: string, enterpriseId: string | null, botToken: string, botUserId: string): Promise<void> {
+    await pool.query(
+      `INSERT INTO installations (team_id, enterprise_id, bot_token, bot_user_id)
+       VALUES ($1, $2, $3, $4)
+       ON CONFLICT (team_id, enterprise_id) DO UPDATE SET bot_token = EXCLUDED.bot_token, bot_user_id = EXCLUDED.bot_user_id`,
+      [teamId, enterpriseId, botToken, botUserId]
+    );
   },
 
-  fetch(teamId: string, enterpriseId: string | null): InstallationRow | undefined {
-    return db.prepare<[string, string | null], InstallationRow>(
-      'SELECT * FROM installations WHERE team_id = ? AND (enterprise_id = ? OR enterprise_id IS NULL)'
-    ).get(teamId, enterpriseId);
+  async fetch(teamId: string, enterpriseId: string | null): Promise<InstallationRow | undefined> {
+    const result = await pool.query<InstallationRow>(
+      'SELECT * FROM installations WHERE team_id = $1 AND (enterprise_id = $2 OR enterprise_id IS NULL)',
+      [teamId, enterpriseId]
+    );
+    return result.rows[0];
   },
 };
 
 export const users = {
-  upsert(slackUserId: string, teamId: string, firstName: string, lastName: string): void {
-    db.prepare(`
-      INSERT INTO users (slack_user_id, team_id, first_name, last_name)
-      VALUES (?, ?, ?, ?)
-      ON CONFLICT(slack_user_id, team_id) DO UPDATE SET first_name=excluded.first_name, last_name=excluded.last_name, active=1
-    `).run(slackUserId, teamId, firstName, lastName);
+  async upsert(slackUserId: string, teamId: string, firstName: string, lastName: string): Promise<void> {
+    await pool.query(
+      `INSERT INTO users (slack_user_id, team_id, first_name, last_name)
+       VALUES ($1, $2, $3, $4)
+       ON CONFLICT (slack_user_id, team_id) DO UPDATE SET first_name = EXCLUDED.first_name, last_name = EXCLUDED.last_name, active = TRUE`,
+      [slackUserId, teamId, firstName, lastName]
+    );
   },
 
-  get(slackUserId: string, teamId: string): UserRow | undefined {
-    return db.prepare<[string, string], UserRow>(
-      'SELECT * FROM users WHERE slack_user_id = ? AND team_id = ?'
-    ).get(slackUserId, teamId);
+  async get(slackUserId: string, teamId: string): Promise<UserRow | undefined> {
+    const result = await pool.query<UserRow>(
+      'SELECT * FROM users WHERE slack_user_id = $1 AND team_id = $2',
+      [slackUserId, teamId]
+    );
+    return result.rows[0];
   },
 
-  setActive(slackUserId: string, teamId: string, active: boolean): void {
-    db.prepare('UPDATE users SET active = ? WHERE slack_user_id = ? AND team_id = ?')
-      .run(active ? 1 : 0, slackUserId, teamId);
+  async setActive(slackUserId: string, teamId: string, active: boolean): Promise<void> {
+    await pool.query(
+      'UPDATE users SET active = $1 WHERE slack_user_id = $2 AND team_id = $3',
+      [active, slackUserId, teamId]
+    );
   },
 
-  allActive(): UserRow[] {
-    return db.prepare<[], UserRow>(
-      'SELECT u.*, i.bot_token FROM users u JOIN installations i ON u.team_id = i.team_id WHERE u.active = 1'
-    ).all();
+  async allActive(): Promise<UserRow[]> {
+    const result = await pool.query<UserRow>(
+      'SELECT u.*, i.bot_token FROM users u JOIN installations i ON u.team_id = i.team_id WHERE u.active = TRUE'
+    );
+    return result.rows;
   },
 };
 
 export const suggestions = {
-  upsert(slackUserId: string, teamId: string, date: string, salad: Salad, messageTs: string | null): void {
-    db.prepare(`
-      INSERT INTO daily_suggestions (slack_user_id, team_id, date, suggestion, message_ts)
-      VALUES (?, ?, ?, ?, ?)
-      ON CONFLICT(slack_user_id, team_id, date) DO UPDATE SET suggestion=excluded.suggestion, message_ts=excluded.message_ts, status='pending'
-    `).run(slackUserId, teamId, date, JSON.stringify(salad), messageTs);
+  async upsert(slackUserId: string, teamId: string, date: string, salad: Salad, messageTs: string | null): Promise<void> {
+    await pool.query(
+      `INSERT INTO daily_suggestions (slack_user_id, team_id, date, suggestion, message_ts)
+       VALUES ($1, $2, $3, $4, $5)
+       ON CONFLICT (slack_user_id, team_id, date) DO UPDATE SET suggestion = EXCLUDED.suggestion, message_ts = EXCLUDED.message_ts, status = 'pending'`,
+      [slackUserId, teamId, date, JSON.stringify(salad), messageTs]
+    );
   },
 
-  get(slackUserId: string, teamId: string, date: string): SuggestionWithSalad | undefined {
-    const row = db.prepare<[string, string, string], { suggestion: string } & Omit<SuggestionWithSalad, 'suggestion'>>(
-      'SELECT * FROM daily_suggestions WHERE slack_user_id = ? AND team_id = ? AND date = ?'
-    ).get(slackUserId, teamId, date);
+  async get(slackUserId: string, teamId: string, date: string): Promise<SuggestionWithSalad | undefined> {
+    const result = await pool.query<{ suggestion: string } & Omit<SuggestionWithSalad, 'suggestion'>>(
+      'SELECT * FROM daily_suggestions WHERE slack_user_id = $1 AND team_id = $2 AND date = $3',
+      [slackUserId, teamId, date]
+    );
+    const row = result.rows[0];
     if (!row) return undefined;
     return { ...row, suggestion: JSON.parse(row.suggestion) as Salad };
   },
 
-  setStatus(slackUserId: string, teamId: string, date: string, status: 'confirmed' | 'skipped'): void {
-    db.prepare(
-      'UPDATE daily_suggestions SET status = ?, ordered_at = CURRENT_TIMESTAMP WHERE slack_user_id = ? AND team_id = ? AND date = ?'
-    ).run(status, slackUserId, teamId, date);
+  async setStatus(slackUserId: string, teamId: string, date: string, status: 'confirmed' | 'skipped'): Promise<void> {
+    await pool.query(
+      'UPDATE daily_suggestions SET status = $1, ordered_at = NOW() WHERE slack_user_id = $2 AND team_id = $3 AND date = $4',
+      [status, slackUserId, teamId, date]
+    );
   },
 
-  pendingForDate(date: string): PendingSuggestionRow[] {
-    return db.prepare<[string], PendingSuggestionRow>(`
-      SELECT ds.*, u.first_name, u.last_name, i.bot_token
-      FROM daily_suggestions ds
-      JOIN users u ON ds.slack_user_id = u.slack_user_id AND ds.team_id = u.team_id
-      JOIN installations i ON ds.team_id = i.team_id
-      WHERE ds.date = ? AND ds.status = 'pending'
-    `).all(date);
+  async pendingForDate(date: string): Promise<PendingSuggestionRow[]> {
+    const result = await pool.query<PendingSuggestionRow>(
+      `SELECT ds.*, u.first_name, u.last_name, i.bot_token
+       FROM daily_suggestions ds
+       JOIN users u ON ds.slack_user_id = u.slack_user_id AND ds.team_id = u.team_id
+       JOIN installations i ON ds.team_id = i.team_id
+       WHERE ds.date = $1 AND ds.status = 'pending'`,
+      [date]
+    );
+    return result.rows;
   },
 };

@@ -8,13 +8,13 @@ const installationStore: InstallationStore = {
     const enterpriseId = installation.isEnterpriseInstall ? (installation.enterprise?.id ?? null) : null;
     const bot = installation.bot;
     if (!bot) throw new Error('Missing bot in installation');
-    installations.upsert(teamId, enterpriseId, bot.token, bot.userId);
+    await installations.upsert(teamId, enterpriseId, bot.token, bot.userId);
   },
 
   fetchInstallation: async (query: InstallationQuery<boolean>): Promise<Installation> => {
     const teamId = query.teamId ?? query.enterpriseId;
     if (!teamId) throw new Error('Missing teamId or enterpriseId in query');
-    const row = installations.fetch(teamId, query.enterpriseId ?? null);
+    const row = await installations.fetch(teamId, query.enterpriseId ?? null);
     if (!row) throw new Error(`Installation not found for team ${teamId}`);
     return {
       bot: { token: row.bot_token, userId: row.bot_user_id, scopes: [], id: row.bot_user_id },

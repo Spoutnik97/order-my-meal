@@ -12,16 +12,16 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",
     "@slack/bolt": "^4.4.0",
-    "better-sqlite3": "^11.9.1",
     "dotenv": "^16.5.0",
     "node-cron": "^3.0.3",
+    "pg": "^8.13.3",
     "resend": "^4.5.1"
   },
   "devDependencies": {
     "@slack/web-api": "^7.16.0",
-    "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^25.9.1",
     "@types/node-cron": "^3.0.11",
+    "@types/pg": "^8.11.13",
     "tsx": "^4.22.4",
     "typescript": "^6.0.3"
   }

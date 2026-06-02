@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import { App } from '@slack/bolt';
 import installationStore from './db/installationStore';
+import { initDb } from './db/setup';
 import * as scheduler from './services/scheduler';
 import {
   handleConfirmOrder,
@@ -70,6 +71,7 @@ app.action('open_register', async ({ body, client, ack }) => {
 });
 
 (async () => {
+  await initDb();
   const port = parseInt(process.env.PORT ?? '3000');
   await app.start(port);
   console.log(`⚡ Ferré Order bot running on port ${port}`);
