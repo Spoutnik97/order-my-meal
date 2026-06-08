@@ -21,6 +21,15 @@ type ActionArgs = SlackActionMiddlewareArgs<BlockAction> & AllMiddlewareArgs;
 type ViewArgs = SlackViewMiddlewareArgs<ViewSubmitAction> & AllMiddlewareArgs;
 type CommandArgs = SlackCommandMiddlewareArgs & AllMiddlewareArgs;
 
+async function getUserEmail(client: ActionArgs['client'], userId: string): Promise<string | undefined> {
+  try {
+    const info = await client.users.info({ user: userId });
+    return (info.user as { profile?: { email?: string } })?.profile?.email;
+  } catch {
+    return undefined;
+  }
+}
+
 function todayDate(): string {
   return new Date().toLocaleDateString('fr-CA', { timeZone: 'Europe/Paris' });
 }
@@ -43,7 +52,8 @@ export async function handleConfirmOrder({ body, client, ack }: ActionArgs): Pro
   const record = await suggestions.get(userId, tid, todayDate());
   if (!record || record.status !== 'pending') return;
 
-  await sendOrderEmail(record.suggestion, user.first_name, user.last_name!);
+  const email = await getUserEmail(client, userId);
+  await sendOrderEmail(record.suggestion, user.first_name, user.last_name!, email);
   await suggestions.setStatus(userId, tid, todayDate(), 'confirmed');
 
   const b = body as BlockAction & { container: { channel_id: string; message_ts: string } };
@@ -112,7 +122,8 @@ export async function handleCustomizeSubmit({ body, view, client, ack }: ViewArg
     return;
   }
 
-  await sendOrderEmail(salad, user.first_name, user.last_name!);
+  const email = await getUserEmail(client, userId);
+  await sendOrderEmail(salad, user.first_name, user.last_name!, email);
   await suggestions.setStatus(userId, tid, todayDate(), 'confirmed');
 
   await client.chat.postMessage({
@@ -172,7 +183,8 @@ export async function handleNameThenOrderSubmit({ body, view, client, ack }: Vie
     return;
   }
 
-  await sendOrderEmail(record.suggestion, firstName, lastName);
+  const email = await getUserEmail(client, userId);
+  await sendOrderEmail(record.suggestion, firstName, lastName, email);
   await suggestions.setStatus(userId, tid, todayDate(), 'confirmed');
 
   await client.chat.postMessage({

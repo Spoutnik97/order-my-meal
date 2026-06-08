@@ -17,10 +17,11 @@ Merci,
 ${firstName} ${lastName}`;
 }
 
-export async function sendOrderEmail(salad: Salad, firstName: string, lastName: string): Promise<void> {
+export async function sendOrderEmail(salad: Salad, firstName: string, lastName: string, replyTo?: string): Promise<void> {
   const { error } = await resend.emails.send({
     from: process.env.FROM_EMAIL!,
     to: process.env.RESTAURANT_EMAIL!,
+    ...(replyTo && { reply_to: replyTo }),
     subject: `Commande salade - ${firstName} ${lastName}`,
     text: formatOrder(salad, firstName, lastName),
   });
