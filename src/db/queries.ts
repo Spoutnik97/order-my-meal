@@ -80,6 +80,17 @@ export const suggestions = {
     );
   },
 
+  async recentForUser(slackUserId: string, teamId: string, days: number): Promise<Salad[]> {
+    const result = await pool.query<{ suggestion: string }>(
+      `SELECT suggestion FROM daily_suggestions
+       WHERE slack_user_id = $1 AND team_id = $2
+       AND date >= CURRENT_DATE - ($3 * INTERVAL '1 day')
+       ORDER BY date DESC`,
+      [slackUserId, teamId, days]
+    );
+    return result.rows.map(r => JSON.parse(r.suggestion) as Salad);
+  },
+
   async pendingForDate(date: string): Promise<PendingSuggestionRow[]> {
     const result = await pool.query<PendingSuggestionRow>(
       `SELECT ds.*, u.first_name, u.last_name, i.bot_token

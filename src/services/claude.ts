@@ -4,7 +4,11 @@ import type { Salad } from '../types';
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-export async function suggestSalad(): Promise<Salad> {
+export async function suggestSalad(recentSalads: Salad[] = []): Promise<Salad> {
+  const avoidSection = recentSalads.length > 0
+    ? `\nSalades proposées ces 14 derniers jours (évite de répéter la même base + les mêmes ingrédients principaux) :\n${recentSalads.map(s => `- ${s.base} : ${s.ingredients.join(', ')}`).join('\n')}\n`
+    : '';
+
   const prompt = `Tu es un chef cuisinier expert en salades composées. Propose une salade savoureuse et équilibrée pour le déjeuner.
 
 Choisis parmi ces options :
@@ -12,11 +16,12 @@ Choisis parmi ces options :
 - Ingrédients disponibles : ${INGREDIENTS.join(', ')}
 - Sauce : ${SAUCES.join(', ')}
 - Topping : ${TOPPINGS.join(', ')}
-
+${avoidSection}
 Règles :
 - Choisis soit 4 soit 6 ingrédients (4 si la combinaison est simple et cohérente, 6 si tu veux quelque chose de généreux)
 - Les ingrédients doivent bien se marier ensemble (ex: évite sardines + mozzarella)
 - Pense à l'équilibre protéines / légumes
+- Varie les bases et protéines par rapport aux salades récentes listées ci-dessus
 
 Réponds UNIQUEMENT en JSON valide, sans markdown :
 {

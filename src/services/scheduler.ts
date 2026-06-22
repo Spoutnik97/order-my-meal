@@ -22,7 +22,8 @@ async function sendDailySuggestions(): Promise<void> {
 
   for (const user of activeUsers) {
     try {
-      const salad = await suggestSalad();
+      const recentSalads = await suggestions.recentForUser(user.slack_user_id, user.team_id, 14);
+      const salad = await suggestSalad(recentSalads);
       const client = new WebClient(user.bot_token);
 
       const result = await client.chat.postMessage({
